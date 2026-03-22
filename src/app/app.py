@@ -4,6 +4,7 @@ import faiss
 import streamlit as st
 import requests
 from sentence_transformers import SentenceTransformer
+from huggingface_hub import hf_hub_download
 from PIL import Image, ImageOps
 from pathlib import Path
 
@@ -11,7 +12,10 @@ EMBED_MODEL = "intfloat/multilingual-e5-small"
 OLLAMA_MODEL = "llama3.1:8b"
 OLLAMA_URL = "http://127.0.0.1:11434/api/generate"
 
-STORE = ".cache/rag_store_local"
+HF_DATASET_REPO = "mgonzalz/wwii-rag-data"
+HF_DATASET_SUBFOLDER = "local"
+HF_DATASET_REVISION = "main"
+
 TOP_K = 30
 MIN_SCORE_TO_CITE = 0.50
 MIN_GOOD_HITS = 2
@@ -35,8 +39,24 @@ def embed_query(q: str) -> np.ndarray:
 
 
 def load_store():
-    index = faiss.read_index(f"{STORE}/index.faiss")
-    with open(f"{STORE}/docs.json", "r", encoding="utf-8") as f:
+    index_path = hf_hub_download(
+        repo_id=HF_DATASET_REPO,
+        repo_type="dataset",
+        subfolder=HF_DATASET_SUBFOLDER,
+        filename="index.faiss",
+        revision=HF_DATASET_REVISION,
+    )
+
+    docs_path = hf_hub_download(
+        repo_id=HF_DATASET_REPO,
+        repo_type="dataset",
+        subfolder=HF_DATASET_SUBFOLDER,
+        filename="docs.json",
+        revision=HF_DATASET_REVISION,
+    )
+
+    index = faiss.read_index(index_path)
+    with open(docs_path, "r", encoding="utf-8") as f:
         docs = json.load(f)
     return index, docs
 
